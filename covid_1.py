@@ -67,20 +67,6 @@ df_county['per_hundred_thousand'] = (df_county['Moving_7_day_Average'] / df_coun
 cols_to_move = ['CountyName','Date','cases_movement','Moving_7_day_Average','per_hundred_thousand','PopulationCensus16','ConfirmedCovidCases','cases_shift' ]
 cols = cols_to_move + [col for col in df_county if col not in df_county]
 
-
-# st.write ('this is df county after columns moved', df_county[cols])
-# st.write ('this sorted', df_county[cols].sort_values(by='County', ascending=True))
-st.write ('Which county would you like to see the data for?')
-county_names=df_county['CountyName'].unique()
-names_selected = st.selectbox('Which county would you like to see the data for?',county_names, index=5)
-def county_select(x, names_selected):
-    x= x[x['CountyName']==names_selected]
-    return x[cols].sort_values(by=['Date','Moving_7_day_Average'], ascending =[False,False]) 
-st.write (format_table(county_select(df_county,names_selected)))
-
-st.write ('County sorted by Highest Rolling 7 day Average',format_table(df_county[cols].sort_values(by=['Date','Moving_7_day_Average'], ascending =[False,False])))
-df_county= df_county[df_county['Date']>'2020-04-01']
-tickcount_county = df_county['Date'].nunique()
 def covid_area_chart(data,col_selection, tickcount_county):
     return (
         alt.Chart(data)
@@ -95,11 +81,11 @@ def covid_area_chart(data,col_selection, tickcount_county):
                 ),
             ),
             y=alt.Y(col_selection),
-            color=alt.Color('CountyName:N'),
+            color=alt.Color('CountyName:N',legend=alt.Legend(orient="bottom")),
             # order = alt.Order('cases_movement'),
             # color=alt.Color('CountyName:N', sort = alt.EncodingSortField('ConfirmedCovidCases', op='min')),
             tooltip=['CountyName'],
-        ).interactive()
+        ).interactive().properties(width=1400,height=600)
     )
 
 def covid_line_chart(data,col_selection, tickcount_county):
@@ -116,11 +102,11 @@ def covid_line_chart(data,col_selection, tickcount_county):
                 ),
             ),
             y=alt.Y(col_selection),
-            color=alt.Color('CountyName:N'),
+            color=alt.Color('CountyName:N',legend=alt.Legend(orient="bottom")),
             # order = alt.Order('cases_movement'),
             # color=alt.Color('CountyName:N', sort = alt.EncodingSortField('ConfirmedCovidCases', op='min')),
             tooltip=['CountyName'],
-        ).interactive()
+        ).interactive().properties(width=1400,height=600)
     )
 
 def test(data,col_selection, tickcount_county):
@@ -137,7 +123,7 @@ def test(data,col_selection, tickcount_county):
             ),
             y=alt.Y(col_selection),
             # color=alt.Color('CountyName:N'))
-            color=alt.Color('CountyName:N'),tooltip=['CountyName'])
+            color=alt.Color('CountyName:N',legend=alt.Legend(orient="bottom")),tooltip=['CountyName']).properties(width=1400,height=600)
 
     # points = base.mark_circle().encode(opacity=alt.value(0)).add_selection(highlight).properties(width=600)
     points = base.mark_circle().encode(opacity=alt.value(0)).add_selection(highlight)
@@ -148,62 +134,60 @@ def test(data,col_selection, tickcount_county):
 
     return points + lines
 
-# https://stackoverflow.com/questions/55794391/altair-interactive-line-plot-make-line-pop-and-highlighted-when-clicking-icon-o/55796860#55796860
-# def test_again_line(data,col_selection, tickcount_county):
-#     background = alt.Chart(data).mark_line(point=True, size=10).encode(x=alt.X('Date:T',
-#                     axis=alt.Axis(
-#                     title='Date',
-#                     labelAngle=90,
-#                     tickCount=tickcount_county,
-#                     format='%d-%b',
-#                 ),
-#             ),
-#             y=alt.Y(col_selection),
-#             # color=alt.Color('CountyName:N'))
-#             color=alt.Color('CountyName:N'),tooltip=['CountyName'])
+def test_area(data,col_selection, tickcount_county):
+    
+    highlight = alt.selection(type='single', on='mouseover',fields=['CountyName'], nearest=True)
 
-#     foreground = background.encode(
-#         color=alt.Color(col_selection, legend=None,
-#                         scale=alt.Scale(scheme='category10'))
-#     ).transform_filter(
-#         selection
-#     )
+    base = alt.Chart(data).encode(x=alt.X('Date:T',
+                    axis=alt.Axis(
+                    title='Date',
+                    labelAngle=90,
+                    tickCount=tickcount_county,
+                    format='%d-%b',
+                ),
+            ),
+            y=alt.Y(col_selection),
+            # color=alt.Color('CountyName:N'))
+            color=alt.Color('CountyName:N',legend=alt.Legend(orient="bottom")),tooltip=['CountyName']).properties(width=1400,height=600)
+
+    # points = base.mark_circle().encode(opacity=alt.value(0)).add_selection(highlight).properties(width=600)
+    points = base.mark_circle().encode(opacity=alt.value(1)).add_selection(highlight)
+
+    lines = base.mark_line().encode(size=alt.condition(~highlight, alt.value(1), alt.value(.05)))
+    # lines = base.mark_line().encode(size=alt.condition(~highlight, alt.value(1), alt.value(3)))
 
 
-#     legend = alt.Chart(data).mark_point(filled=True, size=200).encode(
-#         y=alt.Y(col_selection),
-#         color=color
-#     ).add_selection(
-#         selection
-#     )
+    return points + lines
 
-#     return (background + foreground) | legend
 
-# st.altair_chart(covid_area_chart(df_county,'cases_movement:Q', tickcount_county),use_container_width=True)
-st.altair_chart(covid_area_chart(df_county,'Moving_7_day_Average:Q', tickcount_county),use_container_width=True)
-# st.altair_chart(covid_line_chart(df_county,'per_hundred_thousand:Q', tickcount_county),use_container_width=True)
-st.write('Chart by County for cases per hundred thousand')
-st.altair_chart(test(df_county,'per_hundred_thousand:Q', tickcount_county),use_container_width=True)
-# def covid_area_chart(data,col_selection):
-#     return (
-#         alt.Chart(data)
-#         .mark_area()
-#         .encode(
-#             x=alt.X('Date:T',
-#                     axis=alt.Axis(
-#                     title='Date',
-#                     labelAngle=90,
-#                     # tickCount=tickcount_county,
-#                     # format='%d-%b',
-#                 ),
-#             ),
-#             y=alt.Y(col_selection),
-#             color=alt.Color('CountyName:N'),
-#             # order = alt.Order('cases_movement'),
-#             # color=alt.Color('CountyName:N', sort = alt.EncodingSortField('ConfirmedCovidCases', op='min')),
-#             tooltip=['CountyName'],
-#         ).interactive()
-    # )
+
+# st.write ('this is df county after columns moved', df_county[cols])
+# st.write ('this sorted', df_county[cols].sort_values(by='County', ascending=True))
+with st.beta_expander('County Detail Data - select county to see'):
+    st.write ('Which county would you like to see the data for?')
+    county_names=df_county['CountyName'].unique()
+    names_selected = st.selectbox('Which county would you like to see the data for?',county_names, index=5)
+    def county_select(x, names_selected):
+        x= x[x['CountyName']==names_selected]
+        return x[cols].sort_values(by=['Date','Moving_7_day_Average'], ascending =[False,False]) 
+    st.write (format_table(county_select(df_county,names_selected)))
+
+with st.beta_expander('County Detail Data sorted by Highest Rolling 7 day Average'):
+    st.write ('County sorted by Highest Rolling 7 day Average',format_table(df_county[cols].sort_values(by=['Date','Moving_7_day_Average'], ascending =[False,False])))
+
+df_county= df_county[df_county['Date']>'2020-04-01']
+tickcount_county = df_county['Date'].nunique()
+
+
+with st.beta_expander('County moving 7 Day Average of Cases'):
+    # st.altair_chart(covid_area_chart(df_county,'cases_movement:Q', tickcount_county),use_container_width=True)
+    st.altair_chart(covid_area_chart(df_county,'Moving_7_day_Average:Q', tickcount_county),use_container_width=True)
+
+with st.beta_expander('County per 100,000 of population moving 7 Day Average of Cases'):
+    # st.altair_chart(covid_line_chart(df_county,'per_hundred_thousand:Q', tickcount_county),use_container_width=True)
+    # st.write('Chart by County for cases per hundred thousand')
+    st.altair_chart(test(df_county,'per_hundred_thousand:Q', tickcount_county),use_container_width=True)
+
 
 # st.altair_chart(covid_area_chart(df_county,'cases_movement:Q', tickcount_county),use_container_width=True)
 # st.altair_chart(covid_area_chart(df_county,'Moving_7_day_Average:Q'),use_container_width=True)
@@ -263,16 +247,63 @@ def covid_chart(data,type_scale,death_case,tickcount_data):
                 ),
             ),
             y=alt.Y(death_case, scale=alt.Scale(type=type_scale)),
-            color='Type',
+            color=alt.Color('Type',legend=alt.Legend(orient="bottom")),
             tooltip=[death_case],
-        )
+        ).properties(width=1400,height=600)
     )
 
-st.altair_chart(covid_chart(cases_1,'linear','Cases',tickcount_dates_cases),use_container_width=True)
-st.altair_chart(covid_chart(df4,'linear','Deaths',tickcount_dates),use_container_width=True)
-st.altair_chart(covid_chart(hospitalisation_melt,'linear','Hospital_Cases',tickcount_hosp),use_container_width=True)
+st.write('Using container_width BELOW')
+with st.beta_expander('Cases Chart'):
+    st.altair_chart(covid_chart(cases_1,'linear','Cases',tickcount_dates_cases),use_container_width=True)
+# st.write('Using CUSTOMISED width height below')
+# st.altair_chart(covid_chart(cases_1,'linear','Cases',tickcount_dates_cases))
+# st.write('Using container_width BELOW')
+with st.beta_expander('Deaths Chart'):
+    st.altair_chart(covid_chart(df4,'linear','Deaths',tickcount_dates),use_container_width=True)
+# st.write('Using CUSTOMISED width height below')
+# st.altair_chart(covid_chart(df4,'linear','Deaths',tickcount_dates))
+# st.write('Using container_width BELOW')
+with st.beta_expander('Hospitalisations Chart'):
+    st.altair_chart(covid_chart(hospitalisation_melt,'linear','Hospital_Cases',tickcount_hosp),use_container_width=True)
+# st.write('Using CUSTOMISED width height below')
+# st.altair_chart(covid_chart(hospitalisation_melt,'linear','Hospital_Cases',tickcount_hosp))
 # st.altair_chart(covid_chart(cases_melt,'log','Cases',tickcount_dates_cases),use_container_width=True)
 # st.altair_chart(covid_chart(df4,'log','Deaths',tickcount_dates),use_container_width=True)
 
-# st.write ('Data',df1)
-# st.write (df)
+# st.altair_chart(test_area(df_county,'per_hundred_thousand:Q', tickcount_county),use_container_width=True)
+with st.beta_expander('Cases by County per 100,000'):
+    st.altair_chart(test(df_county,'per_hundred_thousand:Q', tickcount_county),use_container_width=True)
+
+
+
+
+# https://stackoverflow.com/questions/55794391/altair-interactive-line-plot-make-line-pop-and-highlighted-when-clicking-icon-o/55796860#55796860
+# def test_again_line(data,col_selection, tickcount_county):
+#     background = alt.Chart(data).mark_line(point=True, size=10).encode(x=alt.X('Date:T',
+#                     axis=alt.Axis(
+#                     title='Date',
+#                     labelAngle=90,
+#                     tickCount=tickcount_county,
+#                     format='%d-%b',
+#                 ),
+#             ),
+#             y=alt.Y(col_selection),
+#             # color=alt.Color('CountyName:N'))
+#             color=alt.Color('CountyName:N'),tooltip=['CountyName'])
+
+#     foreground = background.encode(
+#         color=alt.Color(col_selection, legend=None,
+#                         scale=alt.Scale(scheme='category10'))
+#     ).transform_filter(
+#         selection
+#     )
+
+
+#     legend = alt.Chart(data).mark_point(filled=True, size=200).encode(
+#         y=alt.Y(col_selection),
+#         color=color
+#     ).add_selection(
+#         selection
+#     )
+
+#     return (background + foreground) | legend
